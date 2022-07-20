@@ -82,7 +82,7 @@ unsigned long lastUpdate = 0;
 ModbusMaster Growatt;
 
 const char* ssid = "<Enter your SSID here>";
-const char* password = "<Enter your password heree>";
+const char* password = "<Enter your password here>";
 
 void setup()
 {
