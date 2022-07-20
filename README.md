@@ -11,6 +11,17 @@ The WiFi-F board seems to be quite power hungry. Powering it through the USB plu
 Further details and discussion at DIYSolarForum: https://diysolarforum.com/threads/hacking-the-new-growatt-wifi-f-modules.43231/
 
 ![WiFi-F Dongle Case](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Wifi-F%20Case.jpg "WiFi-F Dongle Case")
+
 ![WiFi-F PCB Top](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/WiFi-F%20PCB%20Top.jpg "WiFi-F Dongle Top")
+
 ![WiFi-F PCB Bottom](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/WiFi-F%20PCB%20Bottom.jpg "WiFi-F Dongle Bottom")
+
 ![Grafana Display](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Growatt_Grafana.png "Grafana Display")
+
+
+###Credits:
+[Otti for his inspiration and prior work flashing other Growatt dongles.](https://github.com/otti/Growatt_ShineWiFi-S)
+[4-20ma for ModbusMaster](https://github.com/4-20ma/ModbusMaster)
+[RobTillaart for RunningAverage](https://github.com/RobTillaart/RunningAverage)
+[ayushsharma82 for WebSerial](https://github.com/ayushsharma82/WebSerial)
+[me-no-dev for ESPAsyncTCP and ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncTCP)
