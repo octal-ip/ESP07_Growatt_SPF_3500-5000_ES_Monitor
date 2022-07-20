@@ -8,6 +8,8 @@ I've included OTA components in the firmware so any future updates can be done w
 
 The WiFi-F board seems to be quite power hungry. Powering it through the USB plug from a source slightly above 5v will ensure the onboard buck converter can provide enough current while flashing the ESP.
 
+Further details and discussion at DIYSolarForum: https://diysolarforum.com/threads/hacking-the-new-growatt-wifi-f-modules.43231/
+
 ![WiFi-F Dongle Case](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Wifi-F%20Case.jpg "WiFi-F Dongle Case")
 ![WiFi-F PCB Top](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/WiFi-F%20PCB%20Top.jpg "WiFi-F Dongle Top")
 ![WiFi-F PCB Bottom](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/WiFi-F%20PCB%20Bottom.jpg "WiFi-F Dongle Bottom")
