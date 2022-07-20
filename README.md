@@ -19,13 +19,11 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 ![Grafana Display](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Growatt_Grafana.png "Grafana Display")
 
 
+
+
 ### Credits:
 [Otti for his inspiration and prior work flashing other Growatt dongles](https://github.com/otti/Growatt_ShineWiFi-S)
-
 [4-20ma for ModbusMaster](https://github.com/4-20ma/ModbusMaster)
-
 [RobTillaart for RunningAverage](https://github.com/RobTillaart/RunningAverage)
-
 [ayushsharma82 for WebSerial](https://github.com/ayushsharma82/WebSerial)
-
 [me-no-dev for ESPAsyncTCP and ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncTCP)
