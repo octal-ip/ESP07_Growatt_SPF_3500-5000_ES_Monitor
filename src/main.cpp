@@ -1,6 +1,3 @@
-//Edit credentials in lines 84, 85 and 183 to suit your environment.
-
-
 #include <Arduino.h>
 #include <ModbusMaster.h>
 #include <ArduinoOTA.h>
@@ -9,9 +6,15 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
-#include <ESPAsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <WebSerial.h>
+#include <TelnetPrint.h>
+
+#include <secrets.h> //Edit this file to include the following details:
+/*
+#define SECRET_SSID "<ssid>>"
+#define SECRET_PASS "<password>"
+#define SECRET_INFLUXDB "http://10.2.2.155:8086/write?db=<db name>&u=<user name>&p=<password>"
+*/
+
 
 #define debugEnabled 0
 
@@ -74,15 +77,10 @@ int failures = 0; //The number of failed WiFi or HTTP post attempts. Will automa
 int httpResponseCode = 0;
 uint8_t result;
 
-AsyncWebServer server(80);
-
 byte collectedSamples = 0;
 unsigned long lastUpdate = 0;
 
 ModbusMaster Growatt;
-
-const char* ssid = "<Enter your SSID here>";
-const char* password = "<Enter your password here>";
 
 void setup()
 {
@@ -91,11 +89,11 @@ void setup()
   // ****Start ESP8266 OTA and Wifi Configuration****
   if (debugEnabled == 1) {
     Serial.println();
-    Serial.print("Connecting to "); Serial.println(ssid);
+    Serial.print("Connecting to "); Serial.println(SECRET_SSID);
   }
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(SECRET_SSID, SECRET_PASS); //Edit include/secrets.h to update this data.
 
   unsigned long connectTime = millis();
   if (debugEnabled == 1) {
@@ -116,6 +114,7 @@ void setup()
   }
   if (debugEnabled == 1) {
     Serial.println();
+    Serial.print("IP address: "); Serial.println(WiFi.localIP());
   }
 
   // Port defaults to 8266
@@ -168,18 +167,16 @@ void setup()
   // Growatt Device ID 1
   Growatt.begin(1, Serial);
 
-  WebSerial.begin(&server);
-  //WebSerial is accessible at "<IP Address>/webserial" in browser
-  server.begin();
+  //Telnet log is accessible at port 23
+  TelnetPrint.begin();
 }
 
 void postData (const char *postData) {
-  WebSerial.print("Posting to InfluxDB: "); WebSerial.println(postData);
-  delay(100);
+  TelnetPrint.print("Posting to InfluxDB: "); TelnetPrint.println(postData);
 
   WiFiClient client;
   HTTPClient http;
-  http.begin(client, "http://<IP address>:8086/write?db=<database>&u=growatt&p=<password>");
+  http.begin(client, SECRET_INFLUXDB);
   http.addHeader("Content-Type", "text/plain");
   
   httpResponseCode = http.POST(postData);
@@ -188,21 +185,20 @@ void postData (const char *postData) {
   if (httpResponseCode >= 200 && httpResponseCode < 300){ //If the HTTP post was successful
     String response = http.getString(); //Get the response to the request
     //Serial.print("HTTP POST Response Body: "); Serial.println(response);
-    WebSerial.print("HTTP POST Response Code: "); WebSerial.println(httpResponseCode);
+    TelnetPrint.print("HTTP POST Response Code: "); TelnetPrint.println(httpResponseCode);
 
     if (failures >= 1) {
       failures--; //Decrement the failure counter.
     }
   }
   else {
-    WebSerial.print("Error sending HTTP POST: "); WebSerial.println(httpResponseCode);
+    TelnetPrint.print("Error sending HTTP POST: "); TelnetPrint.println(httpResponseCode);
     if (httpResponseCode <= 0) {
       failures++; //Incriment the failure counter if the server couldn't be reached.
     }
   }
   http.end();
   client.stop();
-  delay(100); //Allow WebSerial to finish sending data.
 }
 
 void loop()
@@ -214,14 +210,14 @@ void loop()
       Serial.println("WiFi disconnected. Attempting to reconnect... ");
     }
     failures++;
-    WiFi.begin(ssid, password);
+    WiFi.begin(SECRET_SSID, SECRET_PASS);
   }
 
   if ((unsigned long)(millis() - lastUpdate) >= 30000) { //Get a MODBUS reading every 30 seconds.
   
     float rssi = WiFi.RSSI();
-    WebSerial.print("WiFi signal strength is: "); WebSerial.println(rssi);
-    WebSerial.println("30 seconds has passed. Reading the MODBUS...");
+    TelnetPrint.print("WiFi signal strength is: "); TelnetPrint.println(rssi);
+    TelnetPrint.println("30 seconds has passed. Reading the MODBUS...");
     
     Serial.flush(); //Make sure the hardware serial buffer is empty before communicating over MODBUS.
     
@@ -235,7 +231,7 @@ void loop()
         }
 
         if (arrstats[i].type == 0) {
-          //WebSerial.print("Raw MODBUS for address: "); WebSerial.print(arrstats[i].address); WebSerial.print(": "); WebSerial.println(Growatt.getResponseBuffer(0));
+          //TelnetPrint.print("Raw MODBUS for address: "); TelnetPrint.print(arrstats[i].address); TelnetPrint.print(": "); TelnetPrint.println(Growatt.getResponseBuffer(0));
           arrstats[i].value = (Growatt.getResponseBuffer(0) * arrstats[i].multiplier); //Calculatge the actual value.
         }
         else if (arrstats[i].type == 1) {
@@ -245,9 +241,9 @@ void loop()
           arrstats[i].value = (Growatt.getResponseBuffer(1) + (Growatt.getResponseBuffer(0) << 16)) * arrstats[i].multiplier;  //Calculatge the actual value.
         }
 
-        WebSerial.print(arrstats[i].name); WebSerial.print(": "); WebSerial.println(arrstats[i].value);
+        TelnetPrint.print(arrstats[i].name); TelnetPrint.print(": "); TelnetPrint.println(arrstats[i].value);
         arrstats[i].average.addValue(arrstats[i].value); //Add the value to the running average.
-        //WebSerial.print("Values collected: "); WebSerial.println(arrstats[i].average.getCount());
+        //TelnetPrint.print("Values collected: "); TelnetPrint.println(arrstats[i].average.getCount());
 
         if (arrstats[i].average.getCount() >= avSamples) { //If we have enough samples added to the running average, send the data to InfluxDB and clear the average.
           char realtimeAvString[8];
@@ -259,11 +255,11 @@ void loop()
         }
       }
       else {
-        WebSerial.print("MODBUS read failed. Returned value: "); WebSerial.println(result);
+        TelnetPrint.print("MODBUS read failed. Returned value: "); TelnetPrint.println(result);
         failures++;
-        WebSerial.print("Failure counter: "); WebSerial.println(failures);
+        TelnetPrint.print("Failure counter: "); TelnetPrint.println(failures);
       }
-      delay(300);
+      delay(100);
     }
     yield();
     lastUpdate = millis();
@@ -272,7 +268,7 @@ void loop()
     if (debugEnabled == 1) {
       Serial.print("Too many failures, rebooting...");
     }
-    WebSerial.print("Failure counter has reached: "); WebSerial.print(failures); WebSerial.println(". Rebooting...");
+    TelnetPrint.print("Failure counter has reached: "); TelnetPrint.print(failures); TelnetPrint.println(". Rebooting...");
     ESP.restart();
   }
 }
