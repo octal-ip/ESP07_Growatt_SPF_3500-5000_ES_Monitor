@@ -28,6 +28,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 [RobTillaart for RunningAverage](https://github.com/RobTillaart/RunningAverage)
 
-[ayushsharma82 for WebSerial](https://github.com/ayushsharma82/WebSerial)
+[JAndrassy for TelnetStream](https://github.com/jandrassy/TelnetStream)
 
 [me-no-dev for ESPAsyncTCP and ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncTCP)
