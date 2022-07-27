@@ -45,7 +45,7 @@ stats arrstats[37] = {
   {"Battery_SOC", 18, 0, 0.0, RunningAverage(avSamples), 1.0},
   {"Bus_Voltage", 19, 0, 0.0, RunningAverage(avSamples), 0.1},
   {"AC_Input_Voltage", 20, 0, 0.0, RunningAverage(avSamples), 0.1},
-  {"AV_Input_Frequency", 21, 0, 0.0, RunningAverage(avSamples), 0.01},
+  {"AC_Input_Frequency", 21, 0, 0.0, RunningAverage(avSamples), 0.01},
   {"AC_Output_Voltage", 22, 0, 0.0, RunningAverage(avSamples), 0.1},
   {"AC_Output_Frequency", 23, 0, 0.0, RunningAverage(avSamples), 0.01},
   {"Inverter_Temperature", 25, 0, 0.0, RunningAverage(avSamples), 0.1},
