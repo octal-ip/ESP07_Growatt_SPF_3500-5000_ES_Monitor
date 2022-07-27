@@ -31,3 +31,13 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 [JAndrassy for TelnetStream](https://github.com/jandrassy/TelnetStream)
 
 [me-no-dev for ESPAsyncTCP and ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncTCP)
+
+
+
+### Release notes:
+#### Jul 20, 2022:
+	- Initial release
+
+#### Jul 25, 2022:
+	- Moved SSID, WiFi password and InfluxDB connection string to include/secrets.h
+	- Removed WebSerial and replaced it with the more efficient TelnetStream.
