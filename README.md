@@ -41,3 +41,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 #### Jul 25, 2022:
 	- Moved SSID, WiFi password and InfluxDB connection string to include/secrets.h
 	- Removed WebSerial and replaced it with the more efficient TelnetStream.
+
+#### Sep 11, 2022:
+	- Added a sanity check for AC_Discharge_Watts which will return very large numbers if the inverter has been in standby mode.
