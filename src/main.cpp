@@ -240,7 +240,13 @@ void loop()
         else if (arrstats[i].type == 2) { //Signed INT32
           arrstats[i].value = (Growatt.getResponseBuffer(1) + (Growatt.getResponseBuffer(0) << 16)) * arrstats[i].multiplier;  //Calculatge the actual value.
         }
-
+        
+        if (arrstats[i].address == 69) {
+          if (arrstats[i].value > 6000) { //AC_Discharge_Watts will return very large, invalid results when the inverter has been in stanby mode. Ignore the result if the number is greater than 6kW.
+            arrstats[i].value = 0;
+          }
+        }
+         
         TelnetPrint.print(arrstats[i].name); TelnetPrint.print(": "); TelnetPrint.println(arrstats[i].value);
         arrstats[i].average.addValue(arrstats[i].value); //Add the value to the running average.
         //TelnetPrint.print("Values collected: "); TelnetPrint.println(arrstats[i].average.getCount());
