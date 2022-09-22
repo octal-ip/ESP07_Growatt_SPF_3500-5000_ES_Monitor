@@ -44,3 +44,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 #### Sep 11, 2022:
 	- Added a sanity check for AC_Discharge_Watts which will return very large numbers if the inverter has been in standby mode.
+	
+#### Sep 22, 2022:
+	- Added UDP mode for InfluxDB, which is far faster and more efficient. HTTP mode is still available for those who want the added reliability of a TCP connection, at the expense of performance. Either mode can be enabled by toggling the UDP_MODE definition.
