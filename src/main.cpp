@@ -1,3 +1,5 @@
+#define UDP_MODE
+
 #include <Arduino.h>
 #include <ModbusMaster.h>
 #include <ArduinoOTA.h>
@@ -8,11 +10,21 @@
 #include <WiFiUdp.h>
 #include <TelnetPrint.h>
 
-#include <secrets.h> //Edit this file to include the following details:
-/*
+#ifndef UDP_MODE
+  #include <ESP8266HTTPClient.h>
+#endif
+
+#include <secrets.h> /*Edit this file to include the following details.
+SECRET_INFLUXDB only required if using HTTP mode.
+SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
+
 #define SECRET_SSID "<ssid>>"
 #define SECRET_PASS "<password>"
-#define SECRET_INFLUXDB "http://<IP address>:8086/write?db=<db name>&u=<user name>&p=<password>"
+#define SECRET_INFLUXDB "http://<IP Address>:8086/write?db=<db name>&u=<user name>&p=<password>"
+#define SECRET_INFLUX_IP_OCTET1 <first IP octet>
+#define SECRET_INFLUX_IP_OCTET2 <second IP octet>
+#define SECRET_INFLUX_IP_OCTET3 <third IP octet>
+#define SECRET_INFLUX_IP_OCTET4 <last IP octet>
 */
 
 
@@ -81,6 +93,12 @@ byte collectedSamples = 0;
 unsigned long lastUpdate = 0;
 
 ModbusMaster Growatt;
+
+#ifdef UDP_MODE
+  WiFiUDP udp;
+  IPAddress influxhost = {SECRET_INFLUX_IP_OCTET1, SECRET_INFLUX_IP_OCTET2, SECRET_INFLUX_IP_OCTET3, SECRET_INFLUX_IP_OCTET4}; // The IP address of the InfluxDB host for UDP packets.
+  int influxport = 8091; // The port that the InfluxDB server is listening on
+#endif
 
 void setup()
 {
@@ -174,31 +192,40 @@ void setup()
 void postData (const char *postData) {
   TelnetPrint.print("Posting to InfluxDB: "); TelnetPrint.println(postData);
 
-  WiFiClient client;
-  HTTPClient http;
-  http.begin(client, SECRET_INFLUXDB);
-  http.addHeader("Content-Type", "text/plain");
-  
-  httpResponseCode = http.POST(postData);
-  delay(10); //For some reason this delay is critical to the stability of the ESP.
-  
-  if (httpResponseCode >= 200 && httpResponseCode < 300){ //If the HTTP post was successful
-    String response = http.getString(); //Get the response to the request
-    //Serial.print("HTTP POST Response Body: "); Serial.println(response);
-    TelnetPrint.print("HTTP POST Response Code: "); TelnetPrint.println(httpResponseCode);
+  #ifdef UDP_MODE
+    udp.beginPacket(influxhost, influxport);
+    udp.printf(postData);
+    udp.endPacket();
+    delay(5); //This is required to allow the UDP transmission to complete
+  #endif
 
-    if (failures >= 1) {
-      failures--; //Decrement the failure counter.
+  #ifndef UDP_MODE
+    WiFiClient client;
+    HTTPClient http;
+    http.begin(client, SECRET_INFLUXDB);
+    http.addHeader("Content-Type", "text/plain");
+    
+    httpResponseCode = http.POST(postData);
+    delay(10); //For some reason this delay is critical to the stability of the ESP.
+    
+    if (httpResponseCode >= 200 && httpResponseCode < 300){ //If the HTTP post was successful
+      String response = http.getString(); //Get the response to the request
+      //Serial.print("HTTP POST Response Body: "); Serial.println(response);
+      TelnetPrint.print("HTTP POST Response Code: "); TelnetPrint.println(httpResponseCode);
+
+      if (failures >= 1) {
+        failures--; //Decrement the failure counter.
+      }
     }
-  }
-  else {
-    TelnetPrint.print("Error sending HTTP POST: "); TelnetPrint.println(httpResponseCode);
-    if (httpResponseCode <= 0) {
-      failures++; //Incriment the failure counter if the server couldn't be reached.
+    else {
+      TelnetPrint.print("Error sending HTTP POST: "); TelnetPrint.println(httpResponseCode);
+      if (httpResponseCode <= 0) {
+        failures++; //Incriment the failure counter if the server couldn't be reached.
+      }
     }
-  }
-  http.end();
-  client.stop();
+    http.end();
+    client.stop();
+  #endif
 }
 
 void loop()
@@ -240,13 +267,13 @@ void loop()
         else if (arrstats[i].type == 2) { //Signed INT32
           arrstats[i].value = (Growatt.getResponseBuffer(1) + (Growatt.getResponseBuffer(0) << 16)) * arrstats[i].multiplier;  //Calculatge the actual value.
         }
-        
+
         if (arrstats[i].address == 69) {
           if (arrstats[i].value > 6000) { //AC_Discharge_Watts will return very large, invalid results when the inverter has been in stanby mode. Ignore the result if the number is greater than 6kW.
             arrstats[i].value = 0;
           }
         }
-         
+
         TelnetPrint.print(arrstats[i].name); TelnetPrint.print(": "); TelnetPrint.println(arrstats[i].value);
         arrstats[i].average.addValue(arrstats[i].value); //Add the value to the running average.
         //TelnetPrint.print("Values collected: "); TelnetPrint.println(arrstats[i].average.getCount());
@@ -265,7 +292,7 @@ void loop()
         failures++;
         TelnetPrint.print("Failure counter: "); TelnetPrint.println(failures);
       }
-      delay(100);
+      //delay(100);
     }
     yield();
     lastUpdate = millis();
