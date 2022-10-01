@@ -1,4 +1,8 @@
-#define UDP_MODE
+//Choose which protocol you'd like to post the statistics to your database by uncommenting one (or more) of the definitions below.
+//#define INFLUX_UDP
+//#define INFLUX_HTTP
+#define MQTT
+
 
 #include <Arduino.h>
 #include <ModbusMaster.h>
@@ -10,8 +14,17 @@
 #include <WiFiUdp.h>
 #include <TelnetPrint.h>
 
-#ifndef UDP_MODE
+#ifdef MQTT
+  #include <PubSubClient.h>
+  WiFiClient espClient;
+  PubSubClient MQTTclient(espClient);
+  const char *MQTTclientId = "Growatt-SPF";
+  const char *MQTTtopicPrefix = "home/solar/growatt-spf";
+#endif
+
+#ifdef INFLUX_HTTP
   #include <ESP8266HTTPClient.h>
+  int httpResponseCode = 0;
 #endif
 
 #include <secrets.h> /*Edit this file to include the following details.
@@ -20,13 +33,13 @@ SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
 
 #define SECRET_SSID "<ssid>>"
 #define SECRET_PASS "<password>"
-#define SECRET_INFLUXDB "http://<IP Address>:8086/write?db=<db name>&u=<user name>&p=<password>"
+#define SECRET_INFLUXDB "http://<IP Address>:8086/write?db=<db name>&u=<username>&p=<password>"
 #define SECRET_INFLUX_IP_OCTET1 <first IP octet>
 #define SECRET_INFLUX_IP_OCTET2 <second IP octet>
 #define SECRET_INFLUX_IP_OCTET3 <third IP octet>
 #define SECRET_INFLUX_IP_OCTET4 <last IP octet>
+#define SECRET_MQTT_SERVER "<DNS name or IP>"
 */
-
 
 #define debugEnabled 0
 
@@ -40,8 +53,6 @@ struct stats{
    RunningAverage average;
    float multiplier;
 };
-
-
 
 stats arrstats[37] = {
   //Register name, MODBUS address, integer type (0 = uint16_t​, 1 = uint32_t​, 3 = int32_t​), value, running average, multiplier)
@@ -84,17 +95,14 @@ stats arrstats[37] = {
   {"MPPT_Fan_Speed", 83, 0, 0.0, RunningAverage(avSamples), 1.0}
 };
 
-int failures = 0; //The number of failed WiFi or HTTP post attempts. Will automatically restart the ESP if too many failures occurr in a row.
 
-int httpResponseCode = 0;
-uint8_t result;
-
-byte collectedSamples = 0;
-unsigned long lastUpdate = 0;
 
 ModbusMaster Growatt;
+uint8_t MODBUSresult;
+unsigned long lastUpdate = 0;
+int failures = 0; //The number of failed WiFi or send attempts. Will automatically restart the ESP if too many failures occurr in a row.
 
-#ifdef UDP_MODE
+#ifdef INFLUX_UDP
   WiFiUDP udp;
   IPAddress influxhost = {SECRET_INFLUX_IP_OCTET1, SECRET_INFLUX_IP_OCTET2, SECRET_INFLUX_IP_OCTET3, SECRET_INFLUX_IP_OCTET4}; // The IP address of the InfluxDB host for UDP packets.
   int influxport = 8091; // The port that the InfluxDB server is listening on
@@ -185,21 +193,25 @@ void setup()
   // Growatt Device ID 1
   Growatt.begin(1, Serial);
 
+  #ifdef MQTT
+    MQTTclient.setServer(SECRET_MQTT_SERVER, 1883);
+  #endif
+
   //Telnet log is accessible at port 23
   TelnetPrint.begin();
 }
 
-void postData (const char *postData) {
+void sendInfluxData (const char *postData) {
   TelnetPrint.print("Posting to InfluxDB: "); TelnetPrint.println(postData);
 
-  #ifdef UDP_MODE
+  #ifdef INFLUX_UDP
     udp.beginPacket(influxhost, influxport);
     udp.printf(postData);
     udp.endPacket();
     delay(5); //This is required to allow the UDP transmission to complete
   #endif
 
-  #ifndef UDP_MODE
+  #ifdef INFLUX_HTTP
     WiFiClient client;
     HTTPClient http;
     http.begin(client, SECRET_INFLUXDB);
@@ -228,6 +240,77 @@ void postData (const char *postData) {
   #endif
 }
 
+void readMODBUS() {
+  Serial.flush(); //Make sure the hardware serial buffer is empty before communicating over MODBUS.
+  
+  for (int i = 0; i < 37; i++) {  //Iterate through each of the MODBUS queries and obtain their values.
+    ArduinoOTA.handle();
+    Growatt.clearResponseBuffer();
+    MODBUSresult = Growatt.readInputRegisters(arrstats[i].address, 2); //Query each of the MODBUS registers.
+    if (MODBUSresult == Growatt.ku8MBSuccess) {
+      if (failures >= 1) {
+        failures--; //Decrement the failure counter if we've received a response.
+      }
+
+      if (arrstats[i].type == 0) {
+        //TelnetPrint.print("Raw MODBUS for address: "); TelnetPrint.print(arrstats[i].address); TelnetPrint.print(": "); TelnetPrint.println(Growatt.getResponseBuffer(0));
+        arrstats[i].value = (Growatt.getResponseBuffer(0) * arrstats[i].multiplier); //Calculatge the actual value.
+      }
+      else if (arrstats[i].type == 1) {
+        arrstats[i].value = ((Growatt.getResponseBuffer(0) << 8) | Growatt.getResponseBuffer(1)) * arrstats[i].multiplier;  //Calculatge the actual value.
+      }
+      else if (arrstats[i].type == 2) { //Signed INT32
+        arrstats[i].value = (Growatt.getResponseBuffer(1) + (Growatt.getResponseBuffer(0) << 16)) * arrstats[i].multiplier;  //Calculatge the actual value.
+      }
+
+      if (arrstats[i].address == 69) {
+        if (arrstats[i].value > 6000) { //AC_Discharge_Watts will return very large, invalid results when the inverter has been in stanby mode. Ignore the result if the number is greater than 6kW.
+          arrstats[i].value = 0;
+        }
+      }
+
+      TelnetPrint.print(arrstats[i].name); TelnetPrint.print(": "); TelnetPrint.println(arrstats[i].value);
+      arrstats[i].average.addValue(arrstats[i].value); //Add the value to the running average.
+      //TelnetPrint.print("Values collected: "); TelnetPrint.println(arrstats[i].average.getCount());
+
+      if (arrstats[i].average.getCount() >= avSamples) { //If we have enough samples added to the running average, send the data to InfluxDB and clear the average.
+        char realtimeAvString[8];
+        dtostrf(arrstats[i].average.getAverage(), 1, 2, realtimeAvString);
+
+        #if defined (INFLUX_HTTP) || defined (INFLUX_UDP)
+          char post[70];
+          sprintf(post, "%s,sensor=growatt value=%s", arrstats[i].name, realtimeAvString);
+          sendInfluxData(post);
+        #endif
+
+        #ifdef MQTT
+          char MQTTtopic[70];
+          sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, arrstats[i].name);
+          if (MQTTclient.connect(MQTTclientId)) {
+            TelnetPrint.printf("Posting %s to MQTT topic %s \r\n", realtimeAvString, MQTTtopic);
+            MQTTclient.publish(MQTTtopic,realtimeAvString);
+            if (failures >= 1) {
+              failures--; //Decrement the failure counter.
+            }
+          }
+          else {
+            TelnetPrint.print("MQTT connection failed: "); TelnetPrint.println(MQTTclient.state());
+            failures++;
+          }
+        #endif
+
+        arrstats[i].average.clear();
+      }
+    }
+    else {
+      TelnetPrint.print("MODBUS read failed. Returned value: "); TelnetPrint.println(MODBUSresult);
+      failures++;
+      TelnetPrint.print("Failure counter: "); TelnetPrint.println(failures);
+    }
+    yield();
+  }
+}
+
 void loop()
 {
   ArduinoOTA.handle();
@@ -238,65 +321,17 @@ void loop()
     }
     failures++;
     WiFi.begin(SECRET_SSID, SECRET_PASS);
+    delay(1000);
   }
 
   if ((unsigned long)(millis() - lastUpdate) >= 30000) { //Get a MODBUS reading every 30 seconds.
-  
     float rssi = WiFi.RSSI();
     TelnetPrint.print("WiFi signal strength is: "); TelnetPrint.println(rssi);
     TelnetPrint.println("30 seconds has passed. Reading the MODBUS...");
-    
-    Serial.flush(); //Make sure the hardware serial buffer is empty before communicating over MODBUS.
-    
-    for (int i = 0; i < 37; i++) {  //Iterate through each of the MODBUS queries and obtain their values.
-      ArduinoOTA.handle();
-      Growatt.clearResponseBuffer();
-      result = Growatt.readInputRegisters(arrstats[i].address, 2); //Query each of the MODBUS registers.
-      if (result == Growatt.ku8MBSuccess) {
-        if (failures >= 1) {
-          failures--; //Decrement the failure counter if we've received a response.
-        }
-
-        if (arrstats[i].type == 0) {
-          //TelnetPrint.print("Raw MODBUS for address: "); TelnetPrint.print(arrstats[i].address); TelnetPrint.print(": "); TelnetPrint.println(Growatt.getResponseBuffer(0));
-          arrstats[i].value = (Growatt.getResponseBuffer(0) * arrstats[i].multiplier); //Calculatge the actual value.
-        }
-        else if (arrstats[i].type == 1) {
-          arrstats[i].value = ((Growatt.getResponseBuffer(0) << 8) | Growatt.getResponseBuffer(1)) * arrstats[i].multiplier;  //Calculatge the actual value.
-        }
-        else if (arrstats[i].type == 2) { //Signed INT32
-          arrstats[i].value = (Growatt.getResponseBuffer(1) + (Growatt.getResponseBuffer(0) << 16)) * arrstats[i].multiplier;  //Calculatge the actual value.
-        }
-
-        if (arrstats[i].address == 69) {
-          if (arrstats[i].value > 6000) { //AC_Discharge_Watts will return very large, invalid results when the inverter has been in stanby mode. Ignore the result if the number is greater than 6kW.
-            arrstats[i].value = 0;
-          }
-        }
-
-        TelnetPrint.print(arrstats[i].name); TelnetPrint.print(": "); TelnetPrint.println(arrstats[i].value);
-        arrstats[i].average.addValue(arrstats[i].value); //Add the value to the running average.
-        //TelnetPrint.print("Values collected: "); TelnetPrint.println(arrstats[i].average.getCount());
-
-        if (arrstats[i].average.getCount() >= avSamples) { //If we have enough samples added to the running average, send the data to InfluxDB and clear the average.
-          char realtimeAvString[8];
-          dtostrf(arrstats[i].average.getAverage(), 1, 2, realtimeAvString);
-          char post[70];
-          sprintf(post, "%s,sensor=growatt value=%s", arrstats[i].name, realtimeAvString);
-          postData(post);
-          arrstats[i].average.clear();
-        }
-      }
-      else {
-        TelnetPrint.print("MODBUS read failed. Returned value: "); TelnetPrint.println(result);
-        failures++;
-        TelnetPrint.print("Failure counter: "); TelnetPrint.println(failures);
-      }
-      //delay(100);
-    }
-    yield();
+    readMODBUS();    
     lastUpdate = millis();
   }
+
   if (failures >= 40) {  //Reboot the ESP if there's been too many problems retrieving or sending the data.
     if (debugEnabled == 1) {
       Serial.print("Too many failures, rebooting...");
