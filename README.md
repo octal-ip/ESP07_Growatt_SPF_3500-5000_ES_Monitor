@@ -1,5 +1,5 @@
 # ESP07_Growatt_SPF_3500-5000_ES_Monitor
-This project provides Platform.io code for building custom firmware for the WiFi-F module included with the Growatt SPF 3500-5000 ES off-grid inverters. It collects all available metrics through the MODBUS interface and sends them to InfluxDB, which can then be displayed in Grafana.
+This project provides Platform.io code for building custom firmware for the WiFi-F module included with the Growatt SPF 3500-5000 ES off-grid inverters. It collects all available metrics through the MODBUS interface and sends them to InfluxDB or MQTT.
 
 [Otti's project](https://github.com/otti/Growatt_ShineWiFi-S) provided some inspiration, however the newer generation Wifi-F module can be a challenge to interface with. Many serial adaptors (including the popular FTDI and CH340) will fail to communicate with the ESP8266 when plugged directly into the TX/RX pin headers on the PCB. There are two options for overcoming this issue:
 
@@ -34,7 +34,7 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 [JAndrassy for TelnetStream](https://github.com/jandrassy/TelnetStream)
 
-[me-no-dev for ESPAsyncTCP and ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncTCP)
+[Nick O'Leary for PubSubClient(https://github.com/knolleary/pubsubclient)
 
 
 
@@ -51,3 +51,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 	
 #### Sep 22, 2022:
 	- Added UDP mode for InfluxDB, which is far faster and more efficient. HTTP mode is still available for those who want the added reliability of a TCP connection, at the expense of performance. Either mode can be enabled by toggling the UDP_MODE definition.
+	
+#### Sep 22, 2022:
+	- Added MQTT as an optional destination for the statistics. Influx in HTTP or UDP mode and MQQT can be enabled or disabled by uncommenting or commenting the definitions at the beginning of main.cpp.
