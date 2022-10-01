@@ -52,5 +52,5 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 #### Sep 22, 2022:
 	- Added UDP mode for InfluxDB, which is far faster and more efficient. HTTP mode is still available for those who want the added reliability of a TCP connection, at the expense of performance. Either mode can be enabled by toggling the UDP_MODE definition.
 	
-#### Sep 22, 2022:
+#### Oct 1, 2022:
 	- Added MQTT as an optional destination for the statistics. Influx in HTTP or UDP mode and MQQT can be enabled or disabled by uncommenting or commenting the definitions at the beginning of main.cpp.
