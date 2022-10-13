@@ -1,13 +1,13 @@
 # ESP07_Growatt_SPF_3500-5000_ES_Monitor
-This project provides Platform.io code for building custom firmware for the WiFi-F module included with the Growatt SPF 3500-5000 ES off-grid inverters. It collects all available metrics through the MODBUS interface and sends them to InfluxDB or MQTT.
+This project provides Platform.io code for building custom firmware for the WiFi-F module included with the Growatt SPF 3500-5000 ES off-grid inverters. It collects all available metrics through the MODBUS interface and sends them to InfluxDB or MQTT. The inverter's AC output can also be placed in and out of standby mode remotely through MQTT to reduce idle power consumption when the AC output isn't needed. This is a function not available through the inverter's interface and can save quite a lot of energy over time.
 
 [Otti's project](https://github.com/otti/Growatt_ShineWiFi-S) provided some inspiration, however the newer generation Wifi-F module can be a challenge to interface with. Many serial adaptors (including the popular FTDI and CH340) will fail to communicate with the ESP8266 when plugged directly into the TX/RX pin headers on the PCB. There are two options for overcoming this issue:
 
-1. The SIPEX SP3232EE RS-232 transceiver on the rear of the PCB, which is also connected to the RX and TX pins of the ESP8266, must be removed or disconnected temporarily to uploaded new firmware. After the initial upload, the SP3232 chip should be replaced or reconnected before the dongle is attached to the inverter.
+1. The SIPEX SP3232EE RS-232 transceiver on the rear of the PCB, which is also connected to the RX and TX pins of the ESP8266, can be removed or disconnected temporarily to uploaded new firmware. After the initial upload, the SP3232 chip should be replaced or reconnected before the dongle is attached to the inverter.
 
 2. (Preferred) Use an RS232 interface that can better handle the impedance of the SP3232 chip. A USB to UART adaptor utilising the Silicon Labs CP2102 can be bought for a few dollars and is able to upload firmware without any need to modify the dongle.
 
-The onboard ESP8266 is easy to work with: all the necessary pins (GND, TX, RX and GPIO-0) are broken out to a standard 0.1” through holes that a pin header can be soldered to. The chip can be placed in flash mode by shorting GPIO-0 to ground while it's powered on, then standard ESP8266 firmware upload procedures can be followed.
+The onboard ESP8266 is easy to work with: all the necessary pins (GND, TX, RX and GPIO-0) are broken out to a standard 0.1” through holes that a pin header can be soldered to. The chip can be placed in flash mode by shorting GPIO-0 to ground as it's powered on, then standard ESP8266 firmware upload procedures can be followed.
 I've included OTA components in the firmware so any future updates can be done without a serial interface.
 
 The WiFi-F board seems to be quite power hungry. Powering it through the USB plug from a source slightly above 5v will ensure the onboard buck converter can provide enough current while flashing the ESP.
