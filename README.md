@@ -34,7 +34,7 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 [JAndrassy for TelnetStream](https://github.com/jandrassy/TelnetStream)
 
-[Nick O'Leary for PubSubClient(https://github.com/knolleary/pubsubclient)
+[Nick O'Leary for PubSubClient](https://github.com/knolleary/pubsubclient)
 
 
 
@@ -54,3 +54,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 	
 #### Oct 1, 2022:
 	- Added MQTT as an optional destination for the statistics. Influx in HTTP or UDP mode and MQQT can be enabled or disabled by uncommenting or commenting the definitions at the beginning of main.cpp.
+	
+#### Oct 14, 2022:
+	- Added the ability to remotely turn on/off standby mode for the inverter through MQTT. This is useful for reducing overall energy usage when the AC output isn't needed. Battery charging will still occur while the inverter is in standby. Note that 4 modes are available and documented in the Growatt protocol, however only option 0 (Standby off, Output enable.) and option 3 (Standby on, Output disable) seem to have the intended effect. The behaviour of options 1 and 2 are not well defined or implemented.
