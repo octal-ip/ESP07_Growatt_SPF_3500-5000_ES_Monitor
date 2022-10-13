@@ -1,8 +1,7 @@
 //Choose which protocol you'd like to post the statistics to your database by uncommenting one (or more) of the definitions below.
-//#define INFLUX_UDP
+#define INFLUX_UDP
 //#define INFLUX_HTTP
 #define MQTT
-
 
 #include <Arduino.h>
 #include <ModbusMaster.h>
@@ -20,6 +19,7 @@
   PubSubClient MQTTclient(espClient);
   const char *MQTTclientId = "Growatt-SPF";
   const char *MQTTtopicPrefix = "home/solar/growatt-spf";
+  char MQTTtopic[70];
 #endif
 
 #ifdef INFLUX_HTTP
@@ -39,6 +39,7 @@ SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
 #define SECRET_INFLUX_IP_OCTET3 <third IP octet>
 #define SECRET_INFLUX_IP_OCTET4 <last IP octet>
 #define SECRET_MQTT_SERVER "<DNS name or IP>"
+#define SECRET_MQTT_INVERTERMODE_TOPIC "<MQTT topic name>"
 */
 
 #define debugEnabled 0
@@ -95,8 +96,6 @@ stats arrstats[37] = {
   {"MPPT_Fan_Speed", 83, 0, 0.0, RunningAverage(avSamples), 1.0}
 };
 
-
-
 ModbusMaster Growatt;
 uint8_t MODBUSresult;
 unsigned long lastUpdate = 0;
@@ -106,6 +105,41 @@ int failures = 0; //The number of failed WiFi or send attempts. Will automatical
   WiFiUDP udp;
   IPAddress influxhost = {SECRET_INFLUX_IP_OCTET1, SECRET_INFLUX_IP_OCTET2, SECRET_INFLUX_IP_OCTET3, SECRET_INFLUX_IP_OCTET4}; // The IP address of the InfluxDB host for UDP packets.
   int influxport = 8091; // The port that the InfluxDB server is listening on
+#endif
+
+#ifdef MQTT
+  void MQTTcallback(char* topic, byte* payload, unsigned int length) {
+    TelnetPrint.printf("MQTT message arrived [%s]: %c \r\n", topic, payload[0]);
+
+    if ((char)payload[0] == '0') {
+      TelnetPrint.println("Standby off, Output enable.");
+      MODBUSresult = Growatt.writeSingleRegister(0, 0x0000);
+      if (MODBUSresult != Growatt.ku8MBSuccess) {
+        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+      }
+    }
+    else if ((char)payload[0] == '1') {
+      TelnetPrint.println("Standby off, Output disable.");
+      MODBUSresult = Growatt.writeSingleRegister(0, 0x0001);
+      if (MODBUSresult != Growatt.ku8MBSuccess) {
+        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+      }
+    }
+    else if ((char)payload[0] == '2') {
+      TelnetPrint.println("Standby on, Output enable.");
+      MODBUSresult = Growatt.writeSingleRegister(0, 0x0100);
+      if (MODBUSresult != Growatt.ku8MBSuccess) {
+        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+      }
+    }
+    else if ((char)payload[0] == '3') {
+      TelnetPrint.println("Standby on, Output disable.");
+      MODBUSresult = Growatt.writeSingleRegister(0, 0x0101);
+      if (MODBUSresult != Growatt.ku8MBSuccess) {
+        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+      }
+    }
+  }
 #endif
 
 void setup()
@@ -195,6 +229,7 @@ void setup()
 
   #ifdef MQTT
     MQTTclient.setServer(SECRET_MQTT_SERVER, 1883);
+    MQTTclient.setCallback(MQTTcallback);
   #endif
 
   //Telnet log is accessible at port 23
@@ -284,11 +319,10 @@ void readMODBUS() {
         #endif
 
         #ifdef MQTT
-          char MQTTtopic[70];
           sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, arrstats[i].name);
           if (MQTTclient.connect(MQTTclientId)) {
             TelnetPrint.printf("Posting %s to MQTT topic %s \r\n", realtimeAvString, MQTTtopic);
-            MQTTclient.publish(MQTTtopic,realtimeAvString);
+            MQTTclient.publish(MQTTtopic, realtimeAvString, (bool)1);
             if (failures >= 1) {
               failures--; //Decrement the failure counter.
             }
@@ -314,6 +348,7 @@ void readMODBUS() {
 void loop()
 {
   ArduinoOTA.handle();
+  MQTTclient.loop();
 
   if (WiFi.status() != WL_CONNECTED) {
     if (debugEnabled == 1) {
@@ -326,10 +361,26 @@ void loop()
 
   if ((unsigned long)(millis() - lastUpdate) >= 30000) { //Get a MODBUS reading every 30 seconds.
     float rssi = WiFi.RSSI();
-    TelnetPrint.print("WiFi signal strength is: "); TelnetPrint.println(rssi);
+    TelnetPrint.println("WiFi signal strength is: "); TelnetPrint.println(rssi);
     TelnetPrint.println("30 seconds has passed. Reading the MODBUS...");
-    readMODBUS();    
+    readMODBUS();
     lastUpdate = millis();
+
+    #ifdef MQTT
+      if (!MQTTclient.connected()) {
+        TelnetPrint.println("MQTT disconnected. Attempting to reconnect..."); 
+        if (MQTTclient.connect(MQTTclientId)) {
+          sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, SECRET_MQTT_INVERTERMODE_TOPIC);
+          MQTTclient.subscribe(MQTTtopic);
+          failures--;
+          TelnetPrint.println("MQTT Connected.");
+        }
+        else {
+          TelnetPrint.print("MQTT connection failed: "); TelnetPrint.println(MQTTclient.state());
+          failures++;
+        }
+      }
+    #endif
   }
 
   if (failures >= 40) {  //Reboot the ESP if there's been too many problems retrieving or sending the data.
