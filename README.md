@@ -12,6 +12,10 @@ I've included OTA components in the firmware so any future updates can be done w
 
 The WiFi-F board seems to be quite power hungry. Powering it through the USB plug from a source slightly above 5v will ensure the onboard buck converter can provide enough current while flashing the ESP.
 
+The Growatt-Grafana-Dashboard.json file can be imported into Grafana to display metrics from InfluxDB as in the screenshot below.
+
+MQTT-Dash.txt can be imported into the [MQTT Dash app](https://play.google.com/store/apps/details?id=net.routix.mqttdash) to provide metrics and inverter control from your Android device.
+
 Further details and discussion at DIYSolarForum: https://diysolarforum.com/threads/hacking-the-new-growatt-wifi-f-modules.43231/
 
 ![WiFi-F Dongle Case](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Wifi-F%20Case.jpg "WiFi-F Dongle Case")
@@ -65,3 +69,4 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 	Note that 4 modes are available and documented in the Growatt protocol, however only option 0 (Standby off, Output enable.) and option 3 (Standby on, Output disable) seem to have the intended effect.
 	The behaviour of options 1 and 2 are not well defined or implemented.
 	- Added Growatt-Grafana-Dashboard.json, which can be imported into Grafana to quickly construct the dashboard showing all metrics pulled from InfluxDB.
+	- Added MQTT-Dash.txt which can be imported into MQTT Dash for inverter metrics and control from an Android device.
