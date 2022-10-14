@@ -26,6 +26,7 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 ![Grafana Display](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Growatt_Grafana.png "Grafana Display")
 
+![MQTT Dash Screenshot](https://github.com/octal-ip/ESP07_Growatt_SPF_3500-5000_ES_Monitor/blob/main/pics/Screenshot_MQTT%20Dash.png "MQTT Dash Screenshot")
 
 
 
