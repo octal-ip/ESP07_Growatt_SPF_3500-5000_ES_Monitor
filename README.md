@@ -50,11 +50,18 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 	- Added a sanity check for AC_Discharge_Watts which will return very large numbers if the inverter has been in standby mode.
 	
 #### Sep 22, 2022:
-	- Added UDP mode for InfluxDB, which is far faster and more efficient. HTTP mode is still available for those who want the added reliability of a TCP connection, at the expense of performance. Either mode can be enabled by toggling the UDP_MODE definition.
+	- Added UDP mode for InfluxDB, which is far faster and more efficient.
+	HTTP mode is still available for those who want the added reliability of a TCP connection, at the expense of performance.
+	Either mode can be enabled by toggling the UDP_MODE definition.
 	
 #### Oct 1, 2022:
-	- Added MQTT as an optional destination for the statistics. Influx in HTTP or UDP mode and MQQT can be enabled or disabled by uncommenting or commenting the definitions at the beginning of main.cpp.
+	- Added MQTT as an optional destination for the statistics.
+	Influx in HTTP or UDP mode and MQQT can be enabled or disabled by uncommenting or commenting the definitions at the beginning of main.cpp.
 	
 #### Oct 14, 2022:
-	- Added the ability to remotely turn on/off standby mode for the inverter through MQTT. This is useful for reducing overall energy usage when the AC output isn't needed. Battery charging will still occur while the inverter is in standby. Note that 4 modes are available and documented in the Growatt protocol, however only option 0 (Standby off, Output enable.) and option 3 (Standby on, Output disable) seem to have the intended effect. The behaviour of options 1 and 2 are not well defined or implemented.
+	- Added the ability to remotely turn on/off standby mode for the inverter through MQTT.
+	This is useful for reducing overall energy usage when the AC output isn't needed.
+	Battery charging will still occur while the inverter is in standby.
+	Note that 4 modes are available and documented in the Growatt protocol, however only option 0 (Standby off, Output enable.) and option 3 (Standby on, Output disable) seem to have the intended effect.
+	The behaviour of options 1 and 2 are not well defined or implemented.
 	- Added Growatt-Grafana-Dashboard.json, which can be imported into Grafana to quickly construct the dashboard showing all metrics pulled from InfluxDB.
