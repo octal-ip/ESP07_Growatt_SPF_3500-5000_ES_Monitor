@@ -44,7 +44,7 @@ SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
 
 #define debugEnabled 0
 
-int avSamples = 10;
+int avSamples = 20;
 
 struct stats{
    const char *name;
@@ -318,23 +318,26 @@ void readMODBUS() {
           sendInfluxData(post);
         #endif
 
-        #ifdef MQTT
-          sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, arrstats[i].name);
-          if (MQTTclient.connect(MQTTclientId)) {
-            TelnetPrint.printf("Posting %s to MQTT topic %s \r\n", realtimeAvString, MQTTtopic);
-            MQTTclient.publish(MQTTtopic, realtimeAvString, (bool)1);
-            if (failures >= 1) {
-              failures--; //Decrement the failure counter.
-            }
-          }
-          else {
-            TelnetPrint.print("MQTT connection failed: "); TelnetPrint.println(MQTTclient.state());
-            failures++;
-          }
-        #endif
-
         arrstats[i].average.clear();
       }
+
+      #ifdef MQTT
+        sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, arrstats[i].name);
+        if (MQTTclient.connect(MQTTclientId)) {
+          char statString[8];
+          dtostrf(arrstats[i].value, 1, 2, statString);
+          TelnetPrint.printf("Posting %s to MQTT topic %s \r\n", statString, MQTTtopic);
+          MQTTclient.publish(MQTTtopic, statString, (bool)1);
+          if (failures >= 1) {
+            failures--; //Decrement the failure counter.
+          }
+        }
+        else {
+          TelnetPrint.print("MQTT connection failed: "); TelnetPrint.println(MQTTclient.state());
+          failures++;
+        }
+      #endif
+
     }
     else {
       TelnetPrint.print("MODBUS read failed. Returned value: "); TelnetPrint.println(MODBUSresult);
@@ -359,7 +362,7 @@ void loop()
     delay(1000);
   }
 
-  if ((unsigned long)(millis() - lastUpdate) >= 30000) { //Get a MODBUS reading every 30 seconds.
+  if ((unsigned long)(millis() - lastUpdate) >= 15000) { //Get a MODBUS reading every 30 seconds.
     float rssi = WiFi.RSSI();
     TelnetPrint.println("WiFi signal strength is: "); TelnetPrint.println(rssi);
     TelnetPrint.println("30 seconds has passed. Reading the MODBUS...");
@@ -372,7 +375,9 @@ void loop()
         if (MQTTclient.connect(MQTTclientId)) {
           sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, SECRET_MQTT_INVERTERMODE_TOPIC);
           MQTTclient.subscribe(MQTTtopic);
-          failures--;
+          if (failures >= 1) {
+            failures--; //Decrement the failure counter.
+          }
           TelnetPrint.println("MQTT Connected.");
         }
         else {
