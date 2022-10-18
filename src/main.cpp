@@ -373,8 +373,6 @@ void loop()
       if (!MQTTclient.connected()) {
         TelnetPrint.println("MQTT disconnected. Attempting to reconnect..."); 
         if (MQTTclient.connect(MQTTclientId)) {
-          sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, SECRET_MQTT_INVERTERMODE_TOPIC);
-          MQTTclient.subscribe(MQTTtopic);
           if (failures >= 1) {
             failures--; //Decrement the failure counter.
           }
@@ -385,6 +383,8 @@ void loop()
           failures++;
         }
       }
+      sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, SECRET_MQTT_INVERTERMODE_TOPIC);
+      MQTTclient.subscribe(MQTTtopic);
     #endif
   }
 
