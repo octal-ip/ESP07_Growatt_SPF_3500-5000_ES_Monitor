@@ -1834,7 +1834,7 @@
           },
           "groupBy": [],
           "hide": false,
-          "measurement": "Interter_Current",
+          "measurement": "Inverter_Current",
           "orderByTime": "ASC",
           "policy": "autogen",
           "refId": "C",
