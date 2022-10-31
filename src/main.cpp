@@ -77,7 +77,7 @@ stats arrstats[37] = {
   {"Load_Percentage", 27, 0, 0.0, RunningAverage(avSamples), 0.1},
   {"Buck_Converter_Temperature", 32, 0, 0.0, RunningAverage(avSamples), 0.1},
   {"Output_Current", 34, 0, 0.0, RunningAverage(avSamples), 0.1},
-  {"Interter_Current", 35, 0, 0.0, RunningAverage(avSamples), 0.1},
+  {"Inverter_Current", 35, 0, 0.0, RunningAverage(avSamples), 0.1},
   {"AC_Input_Watts", 36, 1, 0.0, RunningAverage(avSamples), 0.1},
   {"AC_Input_VA", 38, 1, 0.0, RunningAverage(avSamples), 0.1},
   {"PV_Energy_Today", 48, 1, 0.0, RunningAverage(avSamples), 0.1},
