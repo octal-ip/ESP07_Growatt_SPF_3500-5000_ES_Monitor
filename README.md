@@ -71,3 +71,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 	The behaviour of options 1 and 2 are not well defined or implemented.
 	- Added Growatt-Grafana-Dashboard.json, which can be imported into Grafana to quickly construct the dashboard showing all metrics pulled from InfluxDB.
 	- Added MQTT-Dash.txt which can be imported into MQTT Dash for inverter metrics and control from an Android device.
+	
+#### December 27, 2022:
+	- Added MQTT authentication. Update SECRET_MQTT_USER and SECRET_MQTT_PASS in include\secrets.h accordingly.
