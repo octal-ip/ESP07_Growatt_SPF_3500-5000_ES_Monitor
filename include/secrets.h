@@ -7,3 +7,5 @@
 #define SECRET_INFLUX_IP_OCTET4 200
 #define SECRET_MQTT_SERVER "10.1.1.200"
 #define SECRET_MQTT_INVERTERMODE_TOPIC "Inverter_Mode"
+#define SECRET_MQTT_USER "<username>"
+#define SECRET_MQTT_PASS "<password>"
