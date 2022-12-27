@@ -323,7 +323,7 @@ void readMODBUS() {
 
       #ifdef MQTT
         sprintf(MQTTtopic, "%s/%s", MQTTtopicPrefix, arrstats[i].name);
-        if (MQTTclient.connect(MQTTclientId)) {
+        if (MQTTclient.connect(MQTTclientId, SECRET_MQTT_USER, SECRET_MQTT_PASS)) {
           char statString[8];
           dtostrf(arrstats[i].value, 1, 2, statString);
           TelnetPrint.printf("Posting %s to MQTT topic %s \r\n", statString, MQTTtopic);
@@ -372,7 +372,7 @@ void loop()
     #ifdef MQTT
       if (!MQTTclient.connected()) {
         TelnetPrint.println("MQTT disconnected. Attempting to reconnect..."); 
-        if (MQTTclient.connect(MQTTclientId)) {
+        if (MQTTclient.connect(MQTTclientId, SECRET_MQTT_USER, SECRET_MQTT_PASS)) {
           if (failures >= 1) {
             failures--; //Decrement the failure counter.
           }
