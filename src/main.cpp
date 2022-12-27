@@ -40,6 +40,8 @@ SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
 #define SECRET_INFLUX_IP_OCTET4 <last IP octet>
 #define SECRET_MQTT_SERVER "<DNS name or IP>"
 #define SECRET_MQTT_INVERTERMODE_TOPIC "<MQTT topic name>"
+#define SECRET_MQTT_USER "<MQTT username>"
+#define SECRET_MQTT_PASS "<MQTT password>"
 */
 
 #define debugEnabled 0
