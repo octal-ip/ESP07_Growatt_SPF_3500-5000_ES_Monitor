@@ -11,7 +11,7 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
-#include <TelnetPrint.h>
+#include <TelnetStream.h>
 
 #ifdef MQTT
   #include <PubSubClient.h>
@@ -46,7 +46,7 @@ SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
 
 #define debugEnabled 0
 
-int avSamples = 20;
+int avSamples = 60;
 
 struct stats{
    const char *name;
@@ -106,39 +106,39 @@ int failures = 0; //The number of failed WiFi or send attempts. Will automatical
 #ifdef INFLUX_UDP
   WiFiUDP udp;
   IPAddress influxhost = {SECRET_INFLUX_IP_OCTET1, SECRET_INFLUX_IP_OCTET2, SECRET_INFLUX_IP_OCTET3, SECRET_INFLUX_IP_OCTET4}; // The IP address of the InfluxDB host for UDP packets.
-  int influxport = 8091; // The port that the InfluxDB server is listening on
+  int influxport = 8094; // The port that the InfluxDB server is listening on
 #endif
 
 #ifdef MQTT
   void MQTTcallback(char* topic, byte* payload, unsigned int length) {
-    TelnetPrint.printf("MQTT message arrived [%s]: %c \r\n", topic, payload[0]);
+    TelnetStream.printf("MQTT message arrived [%s]: %c \r\n", topic, payload[0]);
 
     if ((char)payload[0] == '0') {
-      TelnetPrint.println("Standby off, Output enable.");
+      TelnetStream.println("Standby off, Output enable.");
       MODBUSresult = Growatt.writeSingleRegister(0, 0x0000);
       if (MODBUSresult != Growatt.ku8MBSuccess) {
-        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+        TelnetStream.printf("MODBUS write failed: %d \r\n", MODBUSresult);
       }
     }
     else if ((char)payload[0] == '1') {
-      TelnetPrint.println("Standby off, Output disable.");
+      TelnetStream.println("Standby off, Output disable.");
       MODBUSresult = Growatt.writeSingleRegister(0, 0x0001);
       if (MODBUSresult != Growatt.ku8MBSuccess) {
-        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+        TelnetStream.printf("MODBUS write failed: %d \r\n", MODBUSresult);
       }
     }
     else if ((char)payload[0] == '2') {
-      TelnetPrint.println("Standby on, Output enable.");
+      TelnetStream.println("Standby on, Output enable.");
       MODBUSresult = Growatt.writeSingleRegister(0, 0x0100);
       if (MODBUSresult != Growatt.ku8MBSuccess) {
-        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+        TelnetStream.printf("MODBUS write failed: %d \r\n", MODBUSresult);
       }
     }
     else if ((char)payload[0] == '3') {
-      TelnetPrint.println("Standby on, Output disable.");
+      TelnetStream.println("Standby on, Output disable.");
       MODBUSresult = Growatt.writeSingleRegister(0, 0x0101);
       if (MODBUSresult != Growatt.ku8MBSuccess) {
-        TelnetPrint.printf("MODBUS write failed: %d \r\n", MODBUSresult);
+        TelnetStream.printf("MODBUS write failed: %d \r\n", MODBUSresult);
       }
     }
   }
@@ -235,11 +235,11 @@ void setup()
   #endif
 
   //Telnet log is accessible at port 23
-  TelnetPrint.begin();
+  TelnetStream.begin();
 }
 
 void sendInfluxData (const char *postData) {
-  TelnetPrint.print("Posting to InfluxDB: "); TelnetPrint.println(postData);
+  TelnetStream.print("Posting to InfluxDB: "); TelnetStream.println(postData);
 
   #ifdef INFLUX_UDP
     udp.beginPacket(influxhost, influxport);
@@ -260,14 +260,14 @@ void sendInfluxData (const char *postData) {
     if (httpResponseCode >= 200 && httpResponseCode < 300){ //If the HTTP post was successful
       String response = http.getString(); //Get the response to the request
       //Serial.print("HTTP POST Response Body: "); Serial.println(response);
-      TelnetPrint.print("HTTP POST Response Code: "); TelnetPrint.println(httpResponseCode);
+      TelnetStream.print("HTTP POST Response Code: "); TelnetStream.println(httpResponseCode);
 
       if (failures >= 1) {
         failures--; //Decrement the failure counter.
       }
     }
     else {
-      TelnetPrint.print("Error sending HTTP POST: "); TelnetPrint.println(httpResponseCode);
+      TelnetStream.print("Error sending HTTP POST: "); TelnetStream.println(httpResponseCode);
       if (httpResponseCode <= 0) {
         failures++; //Incriment the failure counter if the server couldn't be reached.
       }
@@ -290,7 +290,7 @@ void readMODBUS() {
       }
 
       if (arrstats[i].type == 0) {
-        //TelnetPrint.print("Raw MODBUS for address: "); TelnetPrint.print(arrstats[i].address); TelnetPrint.print(": "); TelnetPrint.println(Growatt.getResponseBuffer(0));
+        //TelnetStream.print("Raw MODBUS for address: "); TelnetStream.print(arrstats[i].address); TelnetStream.print(": "); TelnetStream.println(Growatt.getResponseBuffer(0));
         arrstats[i].value = (Growatt.getResponseBuffer(0) * arrstats[i].multiplier); //Calculatge the actual value.
       }
       else if (arrstats[i].type == 1) {
@@ -306,9 +306,9 @@ void readMODBUS() {
         }
       }
 
-      TelnetPrint.print(arrstats[i].name); TelnetPrint.print(": "); TelnetPrint.println(arrstats[i].value);
+      TelnetStream.print(arrstats[i].name); TelnetStream.print(": "); TelnetStream.println(arrstats[i].value);
       arrstats[i].average.addValue(arrstats[i].value); //Add the value to the running average.
-      //TelnetPrint.print("Values collected: "); TelnetPrint.println(arrstats[i].average.getCount());
+      //TelnetStream.print("Values collected: "); TelnetStream.println(arrstats[i].average.getCount());
 
       if (arrstats[i].average.getCount() >= avSamples) { //If we have enough samples added to the running average, send the data to InfluxDB and clear the average.
         char realtimeAvString[8];
@@ -328,23 +328,23 @@ void readMODBUS() {
         if (MQTTclient.connect(MQTTclientId, SECRET_MQTT_USER, SECRET_MQTT_PASS)) {
           char statString[8];
           dtostrf(arrstats[i].value, 1, 2, statString);
-          TelnetPrint.printf("Posting %s to MQTT topic %s \r\n", statString, MQTTtopic);
+          TelnetStream.printf("Posting %s to MQTT topic %s \r\n", statString, MQTTtopic);
           MQTTclient.publish(MQTTtopic, statString, (bool)1);
           if (failures >= 1) {
             failures--; //Decrement the failure counter.
           }
         }
         else {
-          TelnetPrint.print("MQTT connection failed: "); TelnetPrint.println(MQTTclient.state());
+          TelnetStream.print("MQTT connection failed: "); TelnetStream.println(MQTTclient.state());
           failures++;
         }
       #endif
 
     }
     else {
-      TelnetPrint.print("MODBUS read failed. Returned value: "); TelnetPrint.println(MODBUSresult);
+      TelnetStream.print("MODBUS read failed. Returned value: "); TelnetStream.println(MODBUSresult);
       failures++;
-      TelnetPrint.print("Failure counter: "); TelnetPrint.println(failures);
+      TelnetStream.print("Failure counter: "); TelnetStream.println(failures);
     }
     yield();
   }
@@ -364,24 +364,24 @@ void loop()
     delay(1000);
   }
 
-  if ((unsigned long)(millis() - lastUpdate) >= 15000) { //Get a MODBUS reading every 30 seconds.
+  if ((unsigned long)(millis() - lastUpdate) >= 5000) { //Get a MODBUS reading every 5 seconds.
     float rssi = WiFi.RSSI();
-    TelnetPrint.println("WiFi signal strength is: "); TelnetPrint.println(rssi);
-    TelnetPrint.println("30 seconds has passed. Reading the MODBUS...");
+    TelnetStream.println("WiFi signal strength is: "); TelnetStream.println(rssi);
+    TelnetStream.println("Reading the MODBUS...");
     readMODBUS();
     lastUpdate = millis();
 
     #ifdef MQTT
       if (!MQTTclient.connected()) {
-        TelnetPrint.println("MQTT disconnected. Attempting to reconnect..."); 
+        TelnetStream.println("MQTT disconnected. Attempting to reconnect..."); 
         if (MQTTclient.connect(MQTTclientId, SECRET_MQTT_USER, SECRET_MQTT_PASS)) {
           if (failures >= 1) {
             failures--; //Decrement the failure counter.
           }
-          TelnetPrint.println("MQTT Connected.");
+          TelnetStream.println("MQTT Connected.");
         }
         else {
-          TelnetPrint.print("MQTT connection failed: "); TelnetPrint.println(MQTTclient.state());
+          TelnetStream.print("MQTT connection failed: "); TelnetStream.println(MQTTclient.state());
           failures++;
         }
       }
@@ -394,7 +394,7 @@ void loop()
     if (debugEnabled == 1) {
       Serial.print("Too many failures, rebooting...");
     }
-    TelnetPrint.print("Failure counter has reached: "); TelnetPrint.print(failures); TelnetPrint.println(". Rebooting...");
+    TelnetStream.print("Failure counter has reached: "); TelnetStream.print(failures); TelnetStream.println(". Rebooting...");
     ESP.restart();
   }
 }
