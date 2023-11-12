@@ -41,6 +41,8 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 [Nick O'Leary for PubSubClient](https://github.com/knolleary/pubsubclient)
 
+[Tobias Schürg for InfluxDB Client](https://github.com/tobiasschuerg/InfluxDB-Client-for-Arduino/)
+
 
 
 ### Release notes:
