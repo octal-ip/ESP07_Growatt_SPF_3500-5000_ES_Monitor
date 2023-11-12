@@ -1,11 +1,10 @@
-#define SECRET_SSID "<ssid>"
-#define SECRET_PASS "<password>"
-#define SECRET_INFLUXDB "http://<IP address>:8086/write?db=<db name>&u=<username>&p=<password>"
-#define SECRET_INFLUX_IP_OCTET1 10
-#define SECRET_INFLUX_IP_OCTET2 1
-#define SECRET_INFLUX_IP_OCTET3 1
-#define SECRET_INFLUX_IP_OCTET4 200
-#define SECRET_MQTT_SERVER "10.1.1.200"
-#define SECRET_MQTT_INVERTERMODE_TOPIC "Inverter_Mode"
-#define SECRET_MQTT_USER "<username>"
-#define SECRET_MQTT_PASS "<password>"
+#define SECRET_SSID "your_ssid"
+#define SECRET_PASS "your_password"
+#define SECRET_INFLUXDB_URL "http://10.x.x.x:8086"
+#define SECRET_INFLUXDB_TOKEN "your_token"
+#define SECRET_INFLUXDB_ORG "default"
+#define SECRET_INFLUXDB_BUCKET "your_bucket"
+#define SECRET_MQTT_SERVER "10.x.x.x"
+#define SECRET_MQTT_INVERTERMODE_TOPIC "your_MQTT_topic_name>"
+#define SECRET_MQTT_USER "your_MQTT_username"
+#define SECRET_MQTT_PASS "your_MQTT_password"
