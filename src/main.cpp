@@ -318,8 +318,10 @@ void readMODBUS() {
 void loop()
 {
   ArduinoOTA.handle();
-  MQTTclient.loop();
-
+  #ifdef MQTT
+    MQTTclient.loop();
+  #endif
+  
   if (WiFi.status() != WL_CONNECTED) {
     if (debugEnabled == 1) {
       Serial.println("WiFi disconnected. Attempting to reconnect... ");
