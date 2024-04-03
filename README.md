@@ -14,7 +14,7 @@ The WiFi-F board seems to be quite power hungry. Powering it through the USB plu
 
 The Growatt-Grafana-Dashboard.json file can be imported into Grafana to display metrics from InfluxDB v2 as in the screenshot below.
 
-MQTT-Dash.txt can be imported into the [MQTT Dash app](https://play.google.com/store/apps/details?id=net.routix.mqttdash) to provide metrics and inverter control from your Android device. If MQTT is not required, it can be disabled by removing _/#define MQTT_ from line 1 in main.cpp,
+MQTT-Dash.txt can be imported into the [MQTT Dash app](https://play.google.com/store/apps/details?id=net.routix.mqttdash) to provide metrics and inverter control from your Android device. If MQTT is not required, it can be disabled by removing _#define MQTT_ from line 1 in main.cpp,
 
 Further details and discussion at DIYSolarForum: https://diysolarforum.com/threads/hacking-the-new-growatt-wifi-f-modules.43231/
 
