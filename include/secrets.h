@@ -5,6 +5,6 @@
 #define SECRET_INFLUXDB_ORG "default"
 #define SECRET_INFLUXDB_BUCKET "your_bucket"
 #define SECRET_MQTT_SERVER "10.x.x.x"
-#define SECRET_MQTT_INVERTERMODE_TOPIC "your_MQTT_topic_name>"
+#define SECRET_MQTT_INVERTERMODE_TOPIC "your_MQTT_topic_name"
 #define SECRET_MQTT_USER "your_MQTT_username"
 #define SECRET_MQTT_PASS "your_MQTT_password"
