@@ -1,4 +1,5 @@
 #define MQTT
+#define INFLUX
 
 #include <Arduino.h>
 #include <ModbusMaster.h>
@@ -21,9 +22,6 @@
 #endif
 
 #include <secrets.h> /*Edit this file to include the following details.
-SECRET_INFLUXDB only required if using HTTP mode.
-SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
-
 #define SECRET_SSID "your_ssid"
 #define SECRET_PASS "your_password"
 #define SECRET_INFLUXDB_URL "http://10.x.x.x:8086"
@@ -31,10 +29,14 @@ SECRET_INFLUX_IP_OCTETx only required if using UDP mode.
 #define SECRET_INFLUXDB_ORG "default"
 #define SECRET_INFLUXDB_BUCKET "your_bucket"
 #define SECRET_MQTT_SERVER "10.x.x.x"
-#define SECRET_MQTT_INVERTERMODE_TOPIC "your_MQTT_topic_name>"
+#define SECRET_MQTT_INVERTERMODE_TOPIC "your_MQTT_topic_name"
 #define SECRET_MQTT_USER "your_MQTT_username"
 #define SECRET_MQTT_PASS "your_MQTT_password"
 */
+
+#ifdef INFLUX
+  InfluxDBClient InfluxDBclient(SECRET_INFLUXDB_URL, SECRET_INFLUXDB_ORG, SECRET_INFLUXDB_BUCKET, SECRET_INFLUXDB_TOKEN);
+#endif
 
 #define debugEnabled 0
 
@@ -50,7 +52,6 @@ struct stats{
    Point measurement;
 };
 
-InfluxDBClient InfluxDBclient(SECRET_INFLUXDB_URL, SECRET_INFLUXDB_ORG, SECRET_INFLUXDB_BUCKET, SECRET_INFLUXDB_TOKEN);
 
 stats arrstats[37] = {
   //Register name, MODBUS address, integer type (0 = uint16_t​, 1 = uint32_t​, 3 = int32_t​), value, running average, multiplier, InfluxDB measurement)
@@ -144,6 +145,7 @@ void setup()
   }
 
   WiFi.mode(WIFI_STA);
+  WiFi.hostname("ESP07-Growatt-Monitor");
   WiFi.begin(SECRET_SSID, SECRET_PASS); //Edit include/secrets.h to update this data.
 
   unsigned long connectTime = millis();
@@ -172,7 +174,7 @@ void setup()
   ArduinoOTA.setPort(8266);
 
   // Hostname defaults to esp8266-[MAC]
-  ArduinoOTA.setHostname("esp8266-Growatt-monitor");
+  ArduinoOTA.setHostname("ESP07-Growatt-Monitor");
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
@@ -226,16 +228,18 @@ void setup()
   //Telnet log is accessible at port 23
   TelnetStream.begin();
 
-  // Check the InfluxDB connection
-  if (InfluxDBclient.validateConnection()) {
-    Serial.print("Connected to InfluxDB: ");
-    Serial.println(InfluxDBclient.getServerUrl());
-  } else {
-    Serial.print("InfluxDB connection failed: ");
-    Serial.println(InfluxDBclient.getLastErrorMessage());
-    Serial.print("Restarting...");
-    ESP.restart();
-  }
+  #ifdef INFLUX
+    // Check the InfluxDB connection
+    if (InfluxDBclient.validateConnection()) {
+      Serial.print("Connected to InfluxDB: ");
+      Serial.println(InfluxDBclient.getServerUrl());
+    } else {
+      Serial.print("InfluxDB connection failed: ");
+      Serial.println(InfluxDBclient.getLastErrorMessage());
+      Serial.print("Restarting...");
+      ESP.restart();
+    }
+  #endif
 }
 
 void readMODBUS() {
@@ -272,21 +276,22 @@ void readMODBUS() {
       //TelnetStream.print("Values collected: "); TelnetStream.println(arrstats[i].average.getCount());
 
       if (arrstats[i].average.getCount() >= avSamples) { //If we have enough samples added to the running average, send the data to InfluxDB and clear the average.
-        arrstats[i].measurement.clearFields();
-        arrstats[i].measurement.clearTags();
-        arrstats[i].measurement.addTag("sensor", "Growatt-SPF");
-        arrstats[i].measurement.addField("value", arrstats[i].average.getAverage());
+        #ifdef INFLUX
+          arrstats[i].measurement.clearFields();
+          arrstats[i].measurement.clearTags();
+          arrstats[i].measurement.addTag("sensor", "Growatt-SPF");
+          arrstats[i].measurement.addField("value", arrstats[i].average.getAverage());
 
-        TelnetStream.print("Sending data to InfluxDB: ");
-        TelnetStream.println(InfluxDBclient.pointToLineProtocol(arrstats[i].measurement));
-        
-        if (!InfluxDBclient.writePoint(arrstats[i].measurement)) { //Write the data point to InfluxDB
-          failures++;
-          TelnetStream.print("InfluxDB write failed: ");
-          TelnetStream.println(InfluxDBclient.getLastErrorMessage());
-        }
-        
-        else if (failures >= 1) failures --;
+          TelnetStream.print("Sending data to InfluxDB: ");
+          TelnetStream.println(InfluxDBclient.pointToLineProtocol(arrstats[i].measurement));
+          
+          if (!InfluxDBclient.writePoint(arrstats[i].measurement)) { //Write the data point to InfluxDB
+            failures++;
+            TelnetStream.print("InfluxDB write failed: ");
+            TelnetStream.println(InfluxDBclient.getLastErrorMessage());
+          }
+          else if (failures >= 1) failures --;
+        #endif
         arrstats[i].average.clear();
       }
 
@@ -318,10 +323,11 @@ void readMODBUS() {
 void loop()
 {
   ArduinoOTA.handle();
+
   #ifdef MQTT
     MQTTclient.loop();
   #endif
-  
+
   if (WiFi.status() != WL_CONNECTED) {
     if (debugEnabled == 1) {
       Serial.println("WiFi disconnected. Attempting to reconnect... ");
