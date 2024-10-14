@@ -79,3 +79,6 @@ Further details and discussion at DIYSolarForum: https://diysolarforum.com/threa
 
 #### November 12, 2023:
 	- Updated to use the official InfluxDB Client for Arduino, introducing support for InfluxDB v2
+ 
+ #### October 15, 2024:
+	- Added a #define for InfluxDB so the firmware can be run with only MQTT if desired.
